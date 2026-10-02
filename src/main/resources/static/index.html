@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OptLink &mdash; opt-in consumer data marketplace (demo)</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+  <header class="site">
+    <nav>
+      <div class="brand">Opt<span>Link</span></div>
+      <div class="links">
+        <a href="/index.html">Home</a>
+        <a href="/signup.html">Consumer signup</a>
+        <a href="/portal.html">Company portal</a>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark mode">&#127761;</button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <span class="badge badge-demo">Portfolio demo &middot; fake data only</span>
+      <h1>A consumer data marketplace built on real, provable consent</h1>
+      <p class="lead">
+        People opt in and can withdraw at any time. Companies only ever see a masked
+        match until they subscribe &mdash; and the moment they reveal a real contact,
+        that access is written to a permanent, queryable audit log. This is the piece
+        most scraped-data platforms skip entirely.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="/signup.html">Try the consumer signup</a>
+        <a class="btn btn-secondary" href="/portal.html">Try the company portal</a>
+      </div>
+    </section>
+
+    <div class="grid-3">
+      <div class="card feature">
+        <h3>Opt-in by design</h3>
+        <p>Every listed consumer explicitly consented, with a timestamp. Withdrawing consent removes them from all future search results immediately &mdash; the record just isn't deleted outright, so the consent history stays provable.</p>
+      </div>
+      <div class="card feature">
+        <h3>Nothing revealed for free</h3>
+        <p>Browsing is always possible so a company can see whether a match exists, but full contact details only unlock for companies with an active subscription.</p>
+      </div>
+      <div class="card feature">
+        <h3>Every access is logged</h3>
+        <p>The instant a company reveals a consumer's real email or phone, an access-log row is written &mdash; who looked, at whom, and when. A company can review its own history at any time.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Why this exists</h2>
+      <p class="muted">
+        This project started as a real business idea &mdash; a marketplace where people sell access to
+        their own data to interested businesses. Researching Egypt's Personal Data Protection Law and
+        GDPR made clear that running it live would mean government licensing and real compliance
+        obligations before a single real user could sign up. Rather than shelve the idea, it's rebuilt
+        here as a demo: every consumer and company below is invented, so there's no real personal data
+        involved at all &mdash; just the architecture a compliant version would need, built and working.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Under the hood</h2>
+      <p class="muted">Java 21 &middot; Spring Boot 3 &middot; Spring Data JPA &middot; Bean Validation &middot; H2 in-memory database &middot; a REST API this page and the portal call directly.</p>
+      <p class="small muted">Explore the API: <code>GET /api/consumers/search?companyId=1</code>, <code>GET /api/consumers/count</code>, <code>GET /api/companies/1/access-log</code>.</p>
+    </div>
+  </main>
+
+  <footer class="site">
+    OptLink is a demo project by Maged Alaa. No real personal data is collected or processed.
+  </footer>
+</body>
+</html>

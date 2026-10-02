@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consumer signup &mdash; OptLink</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+  <header class="site">
+    <nav>
+      <div class="brand">Opt<span>Link</span></div>
+      <div class="links">
+        <a href="/index.html">Home</a>
+        <a href="/signup.html">Consumer signup</a>
+        <a href="/portal.html">Company portal</a>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark mode">&#127761;</button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <span class="badge badge-demo">Demo &middot; use any fake details</span>
+      <h1>List yourself in the marketplace</h1>
+      <p class="lead">
+        Filling this in creates a real row in the demo database (nothing leaves this
+        server) and immediately makes you searchable by interest category &mdash; masked,
+        until a subscribed company reveals your contact details.
+      </p>
+    </section>
+
+    <div class="two-col">
+      <div class="card">
+        <h2 class="section-title">Sign up</h2>
+        <p class="muted small">Consent is a real, enforced checkbox here &mdash; the signup is rejected server-side without it.</p>
+        <form id="signup-form">
+          <div class="field">
+            <label for="fullName">Full name</label>
+            <input type="text" id="fullName" required placeholder="e.g. Sara Adel" />
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" required placeholder="e.g. sara.adel@example.com" />
+          </div>
+          <div class="field">
+            <label for="phone">Phone (optional)</label>
+            <input type="tel" id="phone" placeholder="e.g. +20 100 123 4567" />
+          </div>
+          <div class="field">
+            <label for="city">City</label>
+            <input type="text" id="city" required placeholder="e.g. Cairo" />
+          </div>
+          <div class="field">
+            <label for="interestCategory">What kind of offers interest you?</label>
+            <select id="interestCategory" required>
+              <option value="Fitness">Fitness</option>
+              <option value="Finance">Finance</option>
+              <option value="Retail">Retail</option>
+              <option value="Tech">Tech</option>
+              <option value="Food">Food</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field checkbox-row">
+            <input type="checkbox" id="consentGiven" required />
+            <label for="consentGiven">I consent to being listed in the marketplace and having my masked profile shown to companies, with full contact details revealed only to a subscribed company.</label>
+          </div>
+          <button type="submit" class="btn btn-primary">Sign up</button>
+          <div id="signup-msg" class="msg"></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Change your mind?</h2>
+        <p class="muted small">Withdraw consent using the ID you were given at signup. This removes you from all future search results &mdash; the record of your past consent is kept, not the ability for anyone new to find you.</p>
+        <form id="withdraw-form">
+          <div class="field">
+            <label for="withdrawId">Your consumer ID</label>
+            <input type="number" id="withdrawId" required min="1" placeholder="e.g. 9" />
+          </div>
+          <button type="submit" class="btn btn-danger">Withdraw consent</button>
+          <div id="withdraw-msg" class="msg"></div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site">
+    OptLink is a demo project by Maged Alaa. No real personal data is collected or processed.
+  </footer>
+
+  <script>
+    function showMsg(el, text, ok) {
+      el.textContent = text;
+      el.className = "msg show " + (ok ? "success" : "error");
+    }
+
+    document.getElementById("signup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("signup-msg");
+      const body = {
+        fullName: document.getElementById("fullName").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        city: document.getElementById("city").value.trim(),
+        interestCategory: document.getElementById("interestCategory").value,
+        consentGiven: document.getElementById("consentGiven").checked,
+      };
+
+      try {
+        const res = await fetch("/api/consumers/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (res.status === 201) {
+          const created = await res.json();
+          showMsg(msg, `Signed up! Your consumer ID is ${created.id} — keep it if you ever want to withdraw consent.`, true);
+          document.getElementById("signup-form").reset();
+        } else {
+          const err = await res.json();
+          showMsg(msg, "Couldn't sign up: " + Object.values(err).join(", "), false);
+        }
+      } catch (err) {
+        showMsg(msg, "Network error — is the server running?", false);
+      }
+    });
+
+    document.getElementById("withdraw-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("withdraw-msg");
+      const id = document.getElementById("withdrawId").value;
+
+      try {
+        const res = await fetch(`/api/consumers/${id}/consent`, { method: "DELETE" });
+        if (res.status === 204) {
+          showMsg(msg, "Consent withdrawn. You no longer appear in search results.", true);
+          document.getElementById("withdraw-form").reset();
+        } else if (res.status === 404) {
+          showMsg(msg, "No consumer found with that ID.", false);
+        } else {
+          showMsg(msg, "Something went wrong.", false);
+        }
+      } catch (err) {
+        showMsg(msg, "Network error — is the server running?", false);
+      }
+    });
+  </script>
+</body>
+</html>

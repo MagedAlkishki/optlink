@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Company portal &mdash; OptLink</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+  <header class="site">
+    <nav>
+      <div class="brand">Opt<span>Link</span></div>
+      <div class="links">
+        <a href="/index.html">Home</a>
+        <a href="/signup.html">Consumer signup</a>
+        <a href="/portal.html">Company portal</a>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark mode">&#127761;</button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <span class="badge badge-demo">Demo &middot; two companies are pre-seeded</span>
+      <h1>Company portal</h1>
+      <p class="lead">
+        Try company ID <code>1</code> (subscribed &mdash; full contact details unlock) or
+        <code>2</code> (not subscribed &mdash; results stay masked) to see the access model
+        in action, or sign up a new company below.
+      </p>
+    </section>
+
+    <div class="two-col">
+      <div class="card">
+        <h2 class="section-title">Sign up a new company</h2>
+        <form id="company-signup-form">
+          <div class="field">
+            <label for="companyName">Company name</label>
+            <input type="text" id="companyName" required placeholder="e.g. Nile Retail Co." />
+          </div>
+          <div class="field">
+            <label for="companyEmail">Contact email</label>
+            <input type="email" id="companyEmail" required placeholder="e.g. leads@example.com" />
+          </div>
+          <button type="submit" class="btn btn-primary">Sign up</button>
+          <div id="company-signup-msg" class="msg"></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Your company</h2>
+        <div class="field">
+          <label for="companyId">Company ID</label>
+          <input type="number" id="companyId" min="1" value="1" />
+        </div>
+        <div class="cta-row">
+          <button id="subscribe-btn" class="btn btn-primary" type="button">Subscribe</button>
+          <button id="cancel-btn" class="btn btn-secondary" type="button">Cancel subscription</button>
+        </div>
+        <div id="subscribe-msg" class="msg"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Search consumers</h2>
+      <p class="muted small">Uses the Company ID above &mdash; a subscribed company sees full contact details and writes an access-log entry for every reveal; an unsubscribed company only ever sees a masked match.</p>
+      <div class="field">
+        <label for="searchCategory">Interest category (leave blank for all)</label>
+        <select id="searchCategory">
+          <option value="">All categories</option>
+          <option value="Fitness">Fitness</option>
+          <option value="Finance">Finance</option>
+          <option value="Retail">Retail</option>
+          <option value="Tech">Tech</option>
+          <option value="Food">Food</option>
+        </select>
+      </div>
+      <button id="search-btn" class="btn btn-primary" type="button">Search</button>
+      <div id="search-msg" class="msg"></div>
+      <table id="search-results" style="display:none">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>City</th>
+            <th>Category</th>
+            <th>Contact</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Access log</h2>
+      <p class="muted small">Every consumer this company has revealed full contact details for, and when &mdash; the audit trail a regulator or a consumer could ask for.</p>
+      <button id="log-btn" class="btn btn-secondary" type="button">View access log</button>
+      <div id="log-msg" class="msg"></div>
+      <table id="log-results" style="display:none">
+        <thead>
+          <tr>
+            <th>Consumer</th>
+            <th>Accessed at</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="site">
+    OptLink is a demo project by Maged Alaa. No real personal data is collected or processed.
+  </footer>
+
+  <script>
+    function showMsg(el, text, ok) {
+      el.textContent = text;
+      el.className = "msg show " + (ok ? "success" : "error");
+    }
+
+    function companyId() {
+      return document.getElementById("companyId").value;
+    }
+
+    document.getElementById("company-signup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("company-signup-msg");
+      const body = {
+        name: document.getElementById("companyName").value.trim(),
+        contactEmail: document.getElementById("companyEmail").value.trim(),
+      };
+
+      try {
+        const res = await fetch("/api/companies/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (res.status === 201) {
+          const created = await res.json();
+          showMsg(msg, `Company created with ID ${created.id}. It's not subscribed yet.`, true);
+          document.getElementById("companyId").value = created.id;
+          document.getElementById("company-signup-form").reset();
+        } else {
+          const err = await res.json();
+          showMsg(msg, "Couldn't sign up: " + Object.values(err).join(", "), false);
+        }
+      } catch (err) {
+        showMsg(msg, "Network error — is the server running?", false);
+      }
+    });
+
+    async function setSubscription(subscribe) {
+      const msg = document.getElementById("subscribe-msg");
+      const id = companyId();
+      if (!id) {
+        showMsg(msg, "Enter a company ID first.", false);
+        return;
+      }
+      const path = subscribe ? "subscribe" : "cancel-subscription";
+
+      try {
+        const res = await fetch(`/api/companies/${id}/${path}`, { method: "POST" });
+        if (res.ok) {
+          const company = await res.json();
+          showMsg(msg, `${company.name}: subscription is now ${company.subscriptionActive ? "ACTIVE" : "inactive"}.`, true);
+        } else if (res.status === 404) {
+          showMsg(msg, "No company found with that ID.", false);
+        } else {
+          showMsg(msg, "Something went wrong.", false);
+        }
+      } catch (err) {
+        showMsg(msg, "Network error — is the server running?", false);
+      }
+    }
+
+    document.getElementById("subscribe-btn").addEventListener("click", () => setSubscription(true));
+    document.getElementById("cancel-btn").addEventListener("click", () => setSubscription(false));
+
+    document.getElementById("search-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("search-msg");
+      const table = document.getElementById("search-results");
+      const tbody = table.querySelector("tbody");
+      const id = companyId();
+      if (!id) {
+        showMsg(msg, "Enter a company ID first.", false);
+        table.style.display = "none";
+        return;
+      }
+      const category = document.getElementById("searchCategory").value;
+      const params = new URLSearchParams({ companyId: id });
+      if (category) params.set("interestCategory", category);
+
+      try {
+        const res = await fetch(`/api/consumers/search?${params.toString()}`);
+        if (!res.ok) {
+          showMsg(msg, res.status === 404 ? "No company found with that ID." : "Something went wrong.", false);
+          table.style.display = "none";
+          return;
+        }
+        const results = await res.json();
+        tbody.innerHTML = "";
+        if (results.length === 0) {
+          showMsg(msg, "No matches.", true);
+          table.style.display = "none";
+          return;
+        }
+        msg.className = "msg";
+        results.forEach((r) => {
+          const tr = document.createElement("tr");
+          const contact = r.contactRevealed ? `${r.email || ""}<br>${r.phone || ""}` : "&mdash;";
+          tr.innerHTML = `
+            <td>${r.displayName}</td>
+            <td>${r.city}</td>
+            <td>${r.interestCategory}</td>
+            <td>${contact}</td>
+            <td><span class="tag ${r.contactRevealed ? "tag-full" : "tag-masked"}">${r.contactRevealed ? "Full" : "Masked"}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+        table.style.display = "table";
+      } catch (err) {
+        showMsg(msg, "Network error — is the server running?", false);
+        table.style.display = "none";
+      }
+    });
+
+    document.getElementById("log-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("log-msg");
+      const table = document.getElementById("log-results");
+      const tbody = table.querySelector("tbody");
+      const id = companyId();
+      if (!id) {
+        showMsg(msg, "Enter a company ID first.", false);
+        table.style.display = "none";
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/companies/${id}/access-log`);
+        if (!res.ok) {
+          showMsg(msg, res.status === 404 ? "No company found with that ID." : "Something went wrong.", false);
+          table.style.display = "none";
+          return;
+        }
+        const entries = await res.json();
+        tbody.innerHTML = "";
+        if (entries.length === 0) {
+          showMsg(msg, "No access history yet — reveal a consumer's contact details via search first.", true);
+          table.style.display = "none";
+          return;
+        }
+        msg.className = "msg";
+        entries.forEach((e) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${e.consumerDisplayName}</td><td>${new Date(e.accessedAt).toLocaleString()}</td>`;
+          tbody.appendChild(tr);
+        });
+        table.style.display = "table";
+      } catch (err) {
+        showMsg(msg, "Network error — is the server running?", false);
+        table.style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>
